@@ -5,10 +5,16 @@ import { createDust } from './dust.js';
 import { createLights } from './lights.js';
 import { createMoons } from './moons.js';
 import { createRocks } from './rocks.js';
+import { createRover } from './rover.js';
 import { createSky } from './sky.js';
-import { createTerrain, getHeight } from './terrain.js';
+import { createTerrain, getGroundHeight } from './terrain.js';
+import { createTracks } from './tracks.js';
 
-const CAMERA_CLEARANCE = 1.2;
+const CAMERA_CLEARANCE = 0.6;
+const CAMERA_TARGET_HEIGHT = 1.2;
+// Starting camera position relative to the rover: x left, y up, z forward
+const CAMERA_OFFSET = new THREE.Vector3(-2.5, 1.8, -7.5);
+const UP = new THREE.Vector3(0, 1, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -17,34 +23,41 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(DUST_COLOR);
 
-const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000);
-camera.position.set(5, getHeight(5, 24) + 1.7, 24);
-
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, getHeight(0, 0) + 4.5, 0);
-controls.enableDamping = true;
-controls.maxPolarAngle = Math.PI * 0.49;
-controls.minDistance = 5;
-controls.maxDistance = 120;
-// Slow cinematic drift until the user takes over
-controls.autoRotate = true;
-controls.autoRotateSpeed = 0.12;
-controls.addEventListener('start', () => {
-  controls.autoRotate = false;
-});
-
 createSky(scene);
-createLights(scene);
+const lights = createLights(scene);
 createTerrain(scene);
 createRocks(scene);
 createMoons(scene);
 const dust = createDust(scene);
+const rover = createRover(scene);
+const tracks = createTracks(scene);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(rover.group.position).y += CAMERA_TARGET_HEIGHT;
+camera.position.copy(CAMERA_OFFSET).applyAxisAngle(UP, rover.heading).add(controls.target);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.49;
+controls.minDistance = 3;
+controls.maxDistance = 60;
+
+const followOffset = new THREE.Vector3();
+let lastHeading = rover.heading;
+
+// Moves and turns the camera with the rover, keeping whatever angle the user orbited to
+function followRover() {
+  followOffset.copy(camera.position).sub(controls.target);
+  followOffset.applyAxisAngle(UP, rover.heading - lastHeading);
+  lastHeading = rover.heading;
+  controls.target.copy(rover.group.position).y += CAMERA_TARGET_HEIGHT;
+  camera.position.copy(controls.target).add(followOffset);
+}
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -58,12 +71,16 @@ renderer.setAnimationLoop((time) => {
   const delta = Math.min(seconds - lastTime, 0.1);
   lastTime = seconds;
 
+  rover.update(delta);
+  tracks.update(rover.group.position, rover.heading);
+  followRover();
   controls.update();
   // Keep the camera above the dunes
-  const floor = getHeight(camera.position.x, camera.position.z) + CAMERA_CLEARANCE;
+  const floor = getGroundHeight(camera.position.x, camera.position.z) + CAMERA_CLEARANCE;
   if (camera.position.y < floor) camera.position.y = floor;
 
-  dust.update(delta, seconds);
+  lights.update(rover.group.position);
+  dust.update(delta, seconds, rover.group.position);
   renderer.render(scene, camera);
-  window.__ready = true;
+  window.__ready = rover.ready;
 });

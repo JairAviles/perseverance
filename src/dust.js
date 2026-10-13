@@ -49,14 +49,16 @@ export function createDust(scene) {
   const half = DUST_AREA / 2;
   const position = geometry.attributes.position;
 
-  // Particles drift with the wind and wrap around the edges of the area
-  function update(delta, time) {
+  // Particles drift with the wind and wrap around the edges of an area centred on the rover
+  function update(delta, time, center) {
     for (let i = 0; i < DUST_COUNT; i++) {
       let x = position.getX(i) + WIND.x * delta;
       let z = position.getZ(i) + WIND.z * delta;
       const y = position.getY(i) + Math.sin(time * 0.5 + i) * 0.15 * delta;
-      if (x > half) x -= DUST_AREA;
-      if (z > half) z -= DUST_AREA;
+      if (x > center.x + half) x -= DUST_AREA;
+      else if (x < center.x - half) x += DUST_AREA;
+      if (z > center.z + half) z -= DUST_AREA;
+      else if (z < center.z - half) z += DUST_AREA;
       position.setXYZ(i, x, y, z);
     }
     position.needsUpdate = true;

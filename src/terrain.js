@@ -3,9 +3,13 @@ import { TERRAIN_SIZE } from './constants.js';
 import { fbm, noise2, smoothstep } from './noise.js';
 
 const SEGMENTS = 256;
+const CELL_SIZE = TERRAIN_SIZE / SEGMENTS;
+const ROW = SEGMENTS + 1;
 const RUST = new THREE.Color(0x8f4a2e);
 const OCHRE = new THREE.Color(0xb8825a);
 const BASALT = new THREE.Color(0x4a2c22);
+
+const heights = new Float32Array(ROW * ROW);
 
 export function getHeight(x, z) {
   const distance = Math.hypot(x, z);
@@ -21,13 +25,30 @@ export function getHeight(x, z) {
   return (rolling + dunes) * open + ripples + rim;
 }
 
+// Height of the rendered mesh, following its triangles (getHeight is the smooth source)
+export function getGroundHeight(x, z) {
+  const half = TERRAIN_SIZE / 2;
+  const gridX = THREE.MathUtils.clamp((x + half) / CELL_SIZE, 0, SEGMENTS - 0.0001);
+  const gridZ = THREE.MathUtils.clamp((z + half) / CELL_SIZE, 0, SEGMENTS - 0.0001);
+  const ix = Math.floor(gridX);
+  const iz = Math.floor(gridZ);
+  const u = gridX - ix;
+  const v = gridZ - iz;
+  const a = heights[iz * ROW + ix];
+  const b = heights[(iz + 1) * ROW + ix];
+  const c = heights[(iz + 1) * ROW + ix + 1];
+  const d = heights[iz * ROW + ix + 1];
+  return u + v <= 1 ? a + (d - a) * u + (b - a) * v : c + (b - c) * (1 - u) + (d - c) * (1 - v);
+}
+
 export function createTerrain(scene) {
   const geometry = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, SEGMENTS, SEGMENTS);
   geometry.rotateX(-Math.PI / 2);
 
   const position = geometry.attributes.position;
   for (let i = 0; i < position.count; i++) {
-    position.setY(i, getHeight(position.getX(i), position.getZ(i)));
+    heights[i] = getHeight(position.getX(i), position.getZ(i));
+    position.setY(i, heights[i]);
   }
   geometry.computeVertexNormals();
 
