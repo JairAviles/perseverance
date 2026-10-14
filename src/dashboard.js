@@ -1,0 +1,118 @@
+import './dashboard.css';
+
+const CHART_WIDTH = 268;
+const CHART_HEIGHT = 52;
+const CHART_PADDING = 4;
+const CHART_COLOR = '#ffb878';
+const TOGGLE_KEY = 'KeyT';
+
+function createElement(tag, className, text = '') {
+  const element = document.createElement(tag);
+  element.className = className;
+  element.textContent = text;
+  return element;
+}
+
+function drawChart(canvas, history) {
+  const ratio = Math.min(window.devicePixelRatio, 2);
+  canvas.width = CHART_WIDTH * ratio;
+  canvas.height = CHART_HEIGHT * ratio;
+  const context = canvas.getContext('2d');
+  context.scale(ratio, ratio);
+
+  const values = history.map((datum) => datum.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const firstSol = history[0].sol;
+  const lastSol = history[history.length - 1].sol;
+  const x = (datum) => CHART_PADDING + ((datum.sol - firstSol) / (lastSol - firstSol)) * (CHART_WIDTH - CHART_PADDING * 2);
+  const y = (datum) => CHART_HEIGHT - CHART_PADDING - ((datum.value - min) / (max - min || 1)) * (CHART_HEIGHT - CHART_PADDING * 2);
+
+  context.beginPath();
+  history.forEach((datum, i) => (i ? context.lineTo(x(datum), y(datum)) : context.moveTo(x(datum), y(datum))));
+  context.strokeStyle = CHART_COLOR;
+  context.lineWidth = 1.2;
+  context.lineJoin = 'round';
+  context.stroke();
+
+  // Soft fill under the line
+  context.lineTo(x(history[history.length - 1]), CHART_HEIGHT);
+  context.lineTo(x(history[0]), CHART_HEIGHT);
+  const gradient = context.createLinearGradient(0, 0, 0, CHART_HEIGHT);
+  gradient.addColorStop(0, 'rgba(255, 184, 120, 0.3)');
+  gradient.addColorStop(1, 'rgba(255, 184, 120, 0)');
+  context.fillStyle = gradient;
+  context.fill();
+
+  // The latest reading
+  const latest = history[history.length - 1];
+  context.beginPath();
+  context.arc(x(latest), y(latest), 2.5, 0, Math.PI * 2);
+  context.fillStyle = '#fff';
+  context.fill();
+}
+
+function createCard(telemetry, point) {
+  const card = createElement('article', 'telemetry-card');
+  card.dataset.key = point.key;
+  card.dataset.loaded = 'false';
+
+  const head = createElement('div', 'telemetry-head');
+  head.append(createElement('span', 'telemetry-name', point.name), createElement('span', 'telemetry-provider', telemetry.getProvider(point).name));
+  const reading = createElement('div', 'telemetry-reading');
+  const value = createElement('span', 'telemetry-value', '···');
+  reading.append(value, createElement('span', 'telemetry-unit', point.unit));
+  const canvas = createElement('canvas', 'telemetry-chart');
+  const axis = createElement('div', 'telemetry-axis');
+  const description = createElement('p', 'telemetry-description', 'Waiting for signal');
+  card.append(head, reading, canvas, axis, description);
+
+  let history = [];
+
+  function render() {
+    const latest = history[history.length - 1];
+    const values = history.map((datum) => datum.value);
+    value.textContent = latest.value.toFixed(point.decimals);
+    card.dataset.value = `${value.textContent} ${point.unit}`;
+    description.textContent = point.describe(latest, history);
+    axis.replaceChildren(
+      createElement('span', '', `Sol ${Math.floor(history[0].sol)}`),
+      createElement('span', '', `${Math.min(...values).toFixed(point.decimals)} to ${Math.max(...values).toFixed(point.decimals)} ${point.unit}`),
+      createElement('span', '', `Sol ${Math.floor(latest.sol)}`)
+    );
+    drawChart(canvas, history);
+    card.dataset.loaded = String(history.length > 1 && Number.isFinite(latest.value));
+  }
+
+  telemetry
+    .request(point)
+    .then((data) => {
+      history = data;
+      render();
+      // Live readings replace the newest point on the chart
+      telemetry.subscribe(point, (datum) => {
+        history[history.length - 1] = datum;
+        render();
+      });
+    })
+    .catch((error) => {
+      description.textContent = 'No signal';
+      console.error(`Telemetry "${point.name}" failed to load`, error);
+    });
+
+  return card;
+}
+
+export function createDashboard(telemetry) {
+  const element = createElement('aside', 'dashboard');
+  const header = createElement('header', 'dashboard-header');
+  header.append(createElement('span', '', 'Mission control'), createElement('span', 'dashboard-hint', 'T to hide'));
+  element.append(header, ...telemetry.points.map((point) => createCard(telemetry, point)));
+  document.body.appendChild(element);
+
+  window.addEventListener('keydown', (event) => {
+    if (event.code === TOGGLE_KEY && !event.repeat) element.classList.toggle('is-hidden');
+  });
+
+  return { element };
+}

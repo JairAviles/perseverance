@@ -1,14 +1,18 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DUST_COLOR } from './constants.js';
+import { createDashboard } from './dashboard.js';
 import { createDust } from './dust.js';
 import { createLights } from './lights.js';
+import { createLightTimeTelemetry } from './lightTime.js';
 import { createMoons } from './moons.js';
 import { createRocks } from './rocks.js';
 import { createRover } from './rover.js';
 import { createSky } from './sky.js';
+import { createTelemetry } from './telemetry.js';
 import { createTerrain, getGroundHeight } from './terrain.js';
 import { createTracks } from './tracks.js';
+import { createWaypointTelemetry } from './waypoints.js';
 
 const CAMERA_CLEARANCE = 0.6;
 const CAMERA_TARGET_HEIGHT = 1.2;
@@ -35,8 +39,17 @@ createTerrain(scene);
 createRocks(scene);
 createMoons(scene);
 const dust = createDust(scene);
-const rover = createRover(scene);
+// Reflections for the rover's metal, taken from the sky alone
+const skyScene = new THREE.Scene();
+createSky(skyScene);
+const environment = new THREE.PMREMGenerator(renderer).fromScene(skyScene, 0, 0.1, 2000).texture;
+const rover = createRover(scene, environment);
 const tracks = createTracks(scene);
+
+const telemetry = createTelemetry();
+createWaypointTelemetry(telemetry);
+createLightTimeTelemetry(telemetry);
+createDashboard(telemetry);
 
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000);
 const controls = new OrbitControls(camera, renderer.domElement);

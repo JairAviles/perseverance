@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { getGroundHeight } from './terrain.js';
+import { createWheels } from './wheels.js';
 
 const MODEL_URL = '/models/perseverance.glb';
 const DRACO_PATH = '/draco/';
@@ -17,8 +18,13 @@ const DRIVE_RADIUS = 170;
 const START_HEADING = 2.85;
 const CAMERA_PART = /cam|watson/i;
 const NOT_CAMERA_PART = /cover|wiring|bracket/i;
+const WHEEL_STEER_RATE = 4;
+const MIN_WHEEL_SPEED = 0.01;
+const MAX_ROCKER_ANGLE = 0.35;
+// How strongly the rover's metal mirrors the sky
+const REFLECTION_INTENSITY = 0.7;
 
-function loadModel(rover) {
+function loadModel(rover, environment) {
   const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath(DRACO_PATH));
   loader.load(
     MODEL_URL,
@@ -27,11 +33,14 @@ function loadModel(rover) {
       const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
       model.scale.setScalar(ROVER_WIDTH / size.x);
       size.multiplyScalar(ROVER_WIDTH / size.x);
+      Object.assign(rover, createWheels(model));
 
       model.traverse((object) => {
         if (object.isMesh) {
           object.castShadow = true;
           object.receiveShadow = true;
+          object.material.envMap = environment;
+          object.material.envMapIntensity = REFLECTION_INTENSITY;
         }
         if (object.isCamera || (CAMERA_PART.test(object.name) && !NOT_CAMERA_PART.test(object.name))) {
           rover.cameraParts.push(object.name);
@@ -51,7 +60,7 @@ function loadModel(rover) {
   );
 }
 
-export function createRover(scene) {
+export function createRover(scene, environment) {
   const group = new THREE.Group();
   const keys = new Set();
   const forward = new THREE.Vector3();
@@ -59,7 +68,7 @@ export function createRover(scene) {
   const up = new THREE.Vector3();
   const basis = new THREE.Matrix4();
   const targetQuaternion = new THREE.Quaternion();
-  const rover = { group, heading: START_HEADING, speed: 0, ready: false, cameraParts: [], update };
+  const rover = { group, heading: START_HEADING, speed: 0, ready: false, cameraParts: [], wheels: [], rockers: [], update };
 
   window.addEventListener('keydown', (event) => keys.add(event.code));
   window.addEventListener('keyup', (event) => keys.delete(event.code));
@@ -84,7 +93,33 @@ export function createRover(scene) {
     targetQuaternion.setFromRotationMatrix(basis.makeBasis(left, up, forward));
 
     group.quaternion.slerp(targetQuaternion, blend);
+
+    // Each side tips on its own so its front and rear wheels both stay on the ground
+    const wheelGround = (wheel) =>
+      getGroundHeight(x + forwardZ * wheel.x + forwardX * wheel.z, z - forwardX * wheel.x + forwardZ * wheel.z);
+    for (const rocker of rover.rockers) {
+      const slope = Math.atan2(wheelGround(rocker.front) - wheelGround(rocker.rear), rocker.front.z - rocker.rear.z);
+      const angle = THREE.MathUtils.clamp(Math.asin(forward.y) - slope, -MAX_ROCKER_ANGLE, MAX_ROCKER_ANGLE);
+      rocker.group.rotation.x += (angle - rocker.group.rotation.x) * blend;
+    }
     group.position.y += ((front + back + leftSide + rightSide) / 4 - group.position.y) * blend;
+  }
+
+  // Each wheel rolls at the speed of the ground passing under it, and the corner wheels point the way they travel
+  function turnWheels(turnRate, delta) {
+    for (const wheel of rover.wheels) {
+      const sideways = wheel.steers ? turnRate * wheel.z : 0;
+      const along = rover.speed - turnRate * wheel.x;
+      let roll = Math.hypot(sideways, along);
+      let angle = roll > MIN_WHEEL_SPEED ? Math.atan2(sideways, along) : 0;
+      // A wheel never turns past sideways: it rolls backwards instead
+      if (Math.abs(angle) > Math.PI / 2) {
+        angle -= Math.sign(angle) * Math.PI;
+        roll = -roll;
+      }
+      wheel.pivot.rotation.y += (angle - wheel.pivot.rotation.y) * (1 - Math.exp(-WHEEL_STEER_RATE * delta));
+      wheel.spin.rotation.x += (roll * delta) / wheel.radius;
+    }
   }
 
   function update(delta) {
@@ -93,6 +128,7 @@ export function createRover(scene) {
     const maxChange = ACCELERATION * delta;
     rover.speed += THREE.MathUtils.clamp(throttle * MAX_SPEED - rover.speed, -maxChange, maxChange);
     rover.heading += steer * TURN_SPEED * delta;
+    turnWheels(steer * TURN_SPEED, delta);
 
     group.position.x += Math.sin(rover.heading) * rover.speed * delta;
     group.position.z += Math.cos(rover.heading) * rover.speed * delta;
@@ -106,7 +142,7 @@ export function createRover(scene) {
   }
 
   settle(1);
-  loadModel(rover);
+  loadModel(rover, environment);
   scene.add(group);
   return rover;
 }

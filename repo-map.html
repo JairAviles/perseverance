@@ -1,0 +1,269 @@
+<title>Open MCT Repo Map</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+  /* Layout: one reading column; diagrams are tiers of boxes joined by labelled arrows, coloured by who owns the code */
+  :root {
+    --bg: #f2f4f6;
+    --surface: #ffffff;
+    --ink: #17222e;
+    --muted: #55626f;
+    --line: #c9d1d9;
+    --core: #23628f;
+    --core-soft: #e3eef6;
+    --plugin: #a84a24;
+    --plugin-soft: #f8e9e1;
+    --build: #6b5a14;
+    --build-soft: #f6f0d3;
+    --code-bg: #e8ecf0;
+    --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-head: 'IBM Plex Sans Condensed', 'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10161d; --surface: #18212b; --ink: #e4e9ee; --muted: #9aa7b4; --line: #34424f;
+      --core: #7db7e0; --core-soft: #1a2e3f; --plugin: #eb9670; --plugin-soft: #3a2218;
+      --build: #dcc35a; --build-soft: #332d12; --code-bg: #222d38; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10161d; --surface: #18212b; --ink: #e4e9ee; --muted: #9aa7b4; --line: #34424f;
+    --core: #7db7e0; --core-soft: #1a2e3f; --plugin: #eb9670; --plugin-soft: #3a2218;
+    --build: #dcc35a; --build-soft: #332d12; --code-bg: #222d38; color-scheme: dark;
+  }
+
+  body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.55; }
+  .page { max-width: 920px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 64px; display: flex; flex-direction: column; gap: 48px; }
+  section { display: flex; flex-direction: column; gap: 18px; }
+  h1, h2, h3 { font-family: var(--font-head); font-weight: 600; text-wrap: balance; margin: 0; line-height: 1.15; }
+  h1 { font-size: 2.3rem; }
+  h2 { font-size: 1.6rem; }
+  h3 { font-size: 1.1rem; }
+  p { margin: 0; max-width: 68ch; }
+  a { color: var(--core); }
+  a:focus-visible { outline: 2px solid var(--core); outline-offset: 2px; }
+  code { font-family: var(--font-mono); font-size: 0.86em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; overflow-wrap: anywhere; }
+  .eyebrow { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .lead { font-size: 1.3rem; line-height: 1.45; max-width: 60ch; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 22px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); }
+  .muted { color: var(--muted); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.85rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 14px; height: 14px; border: 1.5px solid var(--line); border-radius: 3px; background: var(--surface); }
+  .swatch.core { border-color: var(--core); background: var(--core-soft); }
+  .swatch.plugin { border-color: var(--plugin); background: var(--plugin-soft); }
+  .swatch.build { border-color: var(--build); background: var(--build-soft); border-style: dashed; }
+
+  .diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 22px; display: flex; flex-direction: column; gap: 6px; }
+  .tier-label { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .row { display: flex; align-items: stretch; gap: 8px; }
+  .row > .box { flex: 1 1 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .box { min-width: 0; border: 1.5px solid var(--line); border-radius: 4px; background: var(--bg); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .box.core { border-color: var(--core); background: var(--core-soft); }
+  .box.plugin { border-color: var(--plugin); background: var(--plugin-soft); }
+  .box.build { border-color: var(--build); background: var(--build-soft); border-style: dashed; }
+  .box b { font-weight: 600; font-size: 0.98rem; }
+  .box span { font-size: 0.86rem; line-height: 1.4; }
+  .ref { font-family: var(--font-mono); font-size: 0.74rem; color: var(--muted); overflow-wrap: anywhere; line-height: 1.4; }
+  .to { font-family: var(--font-mono); font-size: 0.74rem; color: var(--plugin); }
+  .arr { flex: 0 0 auto; align-self: center; font-size: 1.3rem; color: var(--muted); line-height: 1; }
+  .arr::before { content: "\2192"; }
+  .down { display: flex; align-items: center; gap: 10px; padding: 4px 0 4px 14px; color: var(--muted); font-size: 0.85rem; }
+  .down::before { content: "\2193"; font-size: 1.3rem; line-height: 1; }
+  .down.up::before { content: "\2191"; }
+
+  .chain { display: flex; flex-direction: column; gap: 0; }
+  .step { display: grid; grid-template-columns: minmax(0, 1.25fr) auto minmax(0, 1fr); gap: 8px; align-items: center; }
+  .step .num { font-family: var(--font-mono); font-size: 0.74rem; color: var(--muted); }
+  .side-arr { font-size: 1.3rem; color: var(--muted); line-height: 1; }
+  .side-arr::before { content: "\2190"; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+  .card { min-width: 0; display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 2px solid var(--ink); }
+  .card p { font-size: 0.95rem; }
+  ol.todo { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; max-width: 68ch; }
+  pre { margin: 0; background: var(--code-bg); border-radius: 4px; padding: 14px 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.5; }
+  pre code { background: none; padding: 0; font-size: inherit; overflow-wrap: normal; }
+  .note { border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; font-size: 0.92rem; color: var(--muted); max-width: 68ch; }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 1.8rem; }
+    .lead { font-size: 1.12rem; }
+    .diagram { padding: 14px; }
+    .row { flex-direction: column; }
+    .row > .arr::before { content: "\2193"; }
+    .row > .arr { align-self: flex-start; padding-left: 14px; }
+    .step { grid-template-columns: minmax(0, 1fr); }
+    .side-arr { padding-left: 14px; }
+    .side-arr::before { content: "\2191"; }
+  }
+</style>
+
+<div class="page">
+  <header style="display:flex;flex-direction:column;gap:16px">
+    <div class="eyebrow">nasa/openmct · repo map</div>
+    <h1>Open MCT, mapped for Percy</h1>
+    <p class="lead">Open MCT is a dashboard that knows nothing about any spacecraft: plugins tell it what things exist and hand it numbers with timestamps, and it draws them.</p>
+    <div class="facts">
+      <span>version 4.3.1</span><span>commit e09bfaf</span><span>Vue 3.4.24</span><span>72 plugins in the registry</span><span>31 installed by default</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>The map</h2>
+    <p>The core is small. It creates one object called <code>openmct</code>, hangs a set of service desks on it (the APIs), and waits. A plugin is a function that walks up to a desk and registers something: a kind of object, a data source, a clock, a view.</p>
+    <div class="legend">
+      <span><i class="swatch"></i>Page and startup</span>
+      <span><i class="swatch core"></i>Core</span>
+      <span><i class="swatch plugin"></i>Plugin</span>
+    </div>
+    <div class="diagram">
+      <div class="tier-label">Startup</div>
+      <div class="row">
+        <div class="box"><b>The web page</b><span>Installs plugins, then starts the app.</span><div class="ref">index.html:102<br>index.html:240</div></div>
+        <div class="arr"></div>
+        <div class="box"><b>The one openmct object</b><span>Created once, shared by everything.</span><div class="ref">openmct.js:35</div></div>
+        <div class="arr"></div>
+        <div class="box core"><b>The hub (MCT)</b><span>Holds every desk. Has <code>install()</code> and <code>start()</code>.</span><div class="ref">src/MCT.js:77<br>install :435 · start :411</div></div>
+      </div>
+      <div class="down">the hub holds the service desks</div>
+      <div class="tier-label">Core desks (APIs)</div>
+      <div class="grid">
+        <div class="box core"><b>objects</b><span>What things exist and where they are stored.</span><div class="ref">src/MCT.js:175<br>src/api/objects/ObjectAPI.js:68</div></div>
+        <div class="box core"><b>types</b><span>The kinds of things: folder, plot, generator.</span><div class="ref">src/MCT.js:167<br>src/api/types/TypeRegistry.js:59</div></div>
+        <div class="box core"><b>telemetry</b><span>Asks data sources for numbers.</span><div class="ref">src/MCT.js:183<br>src/api/telemetry/TelemetryAPI.js:167</div></div>
+        <div class="box core"><b>time</b><span>The shared clock and time window.</span><div class="ref">src/MCT.js:113<br>src/api/time/TimeAPI.js:83</div></div>
+        <div class="box core"><b>objectViews</b><span>Which screen can show which thing.</span><div class="ref">src/MCT.js:134<br>src/ui/registries/ViewRegistry.js:77</div></div>
+      </div>
+      <div class="down up">each plugin registers at a desk</div>
+      <div class="tier-label">Plugins (four examples; the list is at src/plugins/plugins.js:97)</div>
+      <div class="grid">
+        <div class="box plugin"><b>Local storage</b><span>Saves your objects in the browser.</span><div class="to">→ objects</div><div class="ref">src/plugins/localStorage/plugin.js:27</div></div>
+        <div class="box plugin"><b>Sine wave generator</b><span>A fake data source for demos.</span><div class="to">→ types, telemetry</div><div class="ref">example/generator/plugin.js:64<br>example/generator/plugin.js:166</div></div>
+        <div class="box plugin"><b>UTC time system</b><span>Tells the clock how to count time.</span><div class="to">→ time</div><div class="ref">src/plugins/utcTimeSystem/plugin.js:35</div></div>
+        <div class="box plugin"><b>Plot</b><span>The line chart.</span><div class="to">→ objectViews</div><div class="ref">src/plugins/plot/plugin.js:80<br>installed at src/MCT.js:285</div></div>
+      </div>
+      <div class="down">then start() puts it on screen</div>
+      <div class="tier-label">Screen</div>
+      <div class="row">
+        <div class="box core"><b>Build the screen</b><span>Mounts the Vue layout: tree, main view, time bar.</span><div class="ref">src/MCT.js:385</div></div>
+        <div class="arr"></div>
+        <div class="box core"><b>Pick a view</b><span>You click an object; the best matching view wins.</span><div class="ref">src/ui/registries/ViewRegistry.js:46</div></div>
+        <div class="arr"></div>
+        <div class="box plugin"><b>The view draws</b><span>A plot says yes to anything with numbers over time.</span><div class="ref">src/plugins/plot/PlotViewProvider.js:38</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The journey of one data point</h2>
+    <p>Followed with the built-in sine wave generator. One reading looks like <code>{ utc: 1700000000000, sin: 0.42, cos: 0.91 }</code>: a timestamp plus values. Here is each hand-off until it becomes a dot on the chart.</p>
+    <div class="diagram">
+      <div class="chain">
+        <div class="step"><div class="box plugin"><div class="num">1 · MAKE</div><b>A background worker makes the reading</b><span>On every tick it posts a new reading.</span><div class="ref">example/generator/generatorWorker.js:75</div></div></div>
+        <div class="down">posted to the page</div>
+        <div class="step"><div class="box plugin"><div class="num">2 · CARRY</div><b>A bridge passes it to the page</b><span>It finds who asked and calls them back.</span><div class="ref">example/generator/WorkerInterface.js:95</div></div></div>
+        <div class="down">callback</div>
+        <div class="step"><div class="box plugin"><div class="num">3 · PROVIDE</div><b>The telemetry provider</b><span>The only part that knows where data comes from. Live readings use <code>subscribe</code>, past readings use <code>request</code>.</span><div class="ref">example/generator/GeneratorProvider.js:101 (live)<br>example/generator/GeneratorProvider.js:91 (history)</div></div></div>
+        <div class="down">callback</div>
+        <div class="step">
+          <div class="box core"><div class="num">4 · ROUTE</div><b>The Telemetry API</b><span>A switchboard. It finds the provider that claims the object and passes the reading to everyone listening.</span><div class="ref">src/api/telemetry/TelemetryAPI.js:560 (live)<br>src/api/telemetry/TelemetryAPI.js:495 (history)</div></div>
+          <div class="side-arr"></div>
+          <div class="box core"><b>Time window</b><span>If a history request has no start and end, they come from the shared clock.</span><div class="ref">src/api/telemetry/TelemetryAPI.js:248</div></div>
+        </div>
+        <div class="down">callback with the reading</div>
+        <div class="step">
+          <div class="box plugin"><div class="num">5 · STORE</div><b>The plot's series</b><span>One per data source. It asks for live and past data, files each reading in time order, drops duplicates, checks limits, then announces "add".</span><div class="ref">src/plugins/plot/configuration/PlotSeries.js:214 (asks)<br>src/plugins/plot/configuration/PlotSeries.js:436 (files it)<br>src/plugins/plot/configuration/PlotSeries.js:471 (announces)</div></div>
+          <div class="side-arr"></div>
+          <div class="box plugin"><b>Labels (metadata)</b><span>Say which field is time and which is the value: <code>utc</code> is x, <code>sin</code> is y.</span><div class="ref">example/generator/GeneratorMetadataProvider.js:10, :45<br>src/plugins/plot/configuration/PlotSeries.js:124</div></div>
+        </div>
+        <div class="down">"add" event</div>
+        <div class="step"><div class="box plugin"><div class="num">6 · CONVERT</div><b>The chart's point list</b><span>Turns the reading into an x, y pair in a plain list of numbers.</span><div class="ref">src/plugins/plot/chart/MCTChartSeriesElement.js:36</div></div></div>
+        <div class="down">schedule a redraw</div>
+        <div class="step">
+          <div class="box plugin"><div class="num">7 · REDRAW</div><b>The chart redraws</b><span>On the next animation frame it clears the canvas and draws every series again.</span><div class="ref">src/plugins/plot/chart/MctChart.vue:374 (hears "add")<br>src/plugins/plot/chart/MctChart.vue:768 (draw)</div></div>
+          <div class="side-arr"></div>
+          <div class="box core"><b>The clock ticks</b><span>Each tick moves the time window. The plot scrolls and throws away readings that are too old.</span><div class="ref">src/api/time/TimeContext.js:404<br>src/plugins/plot/MctPlot.vue:548, :822</div></div>
+        </div>
+        <div class="down">draw call</div>
+        <div class="step"><div class="box plugin"><div class="num">8 · PIXELS</div><b>A line on the canvas</b><span>Drawn with the graphics card, or with plain 2D canvas as a fallback.</span><div class="ref">src/plugins/plot/draw/DrawWebGL.js:204<br>src/plugins/plot/draw/Draw2D.js:100</div></div></div>
+      </div>
+    </div>
+    <p class="muted">The same reading can feed other views at the same time. The telemetry table listens to the same switchboard at <code>src/plugins/telemetryTable/TelemetryTable.js:184</code>.</p>
+  </section>
+
+  <section>
+    <h2>The 5 key components</h2>
+    <div class="cards">
+      <div class="card"><h3>1. The hub</h3><p>The single <code>openmct</code> object. Everything is attached to it, and <code>install(plugin)</code> is just "call the plugin with me".</p><div class="ref">src/MCT.js:77 · install :435 · start :411</div></div>
+      <div class="card"><h3>2. Objects and types</h3><p>The catalogue. It answers "what things exist?" (a rover, its speed) and "what kind of thing is this?".</p><div class="ref">src/api/objects/ObjectAPI.js:68<br>src/api/types/TypeRegistry.js:59</div></div>
+      <div class="card"><h3>3. Telemetry API</h3><p>The switchboard for numbers. Views ask it for data; it finds the provider that owns the object and passes the answer back.</p><div class="ref">src/api/telemetry/TelemetryAPI.js:167 (addProvider)<br>:470 (request) · :529 (subscribe)</div></div>
+      <div class="card"><h3>4. Time API</h3><p>One shared clock and one time window. Every view follows it, so moving the time bar moves every chart.</p><div class="ref">src/api/time/TimeAPI.js:83<br>src/api/time/TimeContext.js:404</div></div>
+      <div class="card"><h3>5. Plugins and views</h3><p>Where every feature lives. A plugin registers things; a view provider says "I can draw this object".</p><div class="ref">src/plugins/plugins.js:97<br>src/ui/registries/ViewRegistry.js:77</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How We Connect Percy</h2>
+    <p>Our simulation already knows Percy's speed, heading and position on every frame (<code>src/rover.js</code> in our project). Open MCT needs two things from us: a list of what Percy can measure, and the readings themselves. That is one plugin. Nothing below is built yet.</p>
+    <div class="legend">
+      <span><i class="swatch build"></i>We write this</span>
+      <span><i class="swatch core"></i>Open MCT core, unchanged</span>
+      <span><i class="swatch plugin"></i>Open MCT plugin, unchanged</span>
+    </div>
+    <div class="diagram">
+      <div class="row">
+        <div class="box build"><b>Percy simulation</b><span>Sends <code>{ utc, speed, heading, x, z }</code> a few times per second.</span><div class="ref">our src/rover.js</div></div>
+        <div class="arr"></div>
+        <div class="box build"><b>A small relay</b><span>Carries readings from our page to the Open MCT page, for example over a WebSocket.</span><div class="ref">new</div></div>
+        <div class="arr"></div>
+        <div class="box build"><b>Percy plugin</b><span>Lists Percy's measurements and forwards each reading.</span><div class="ref">new · modelled on example/generator/plugin.js</div></div>
+      </div>
+      <div class="down">registers at the same desks as the generator</div>
+      <div class="row">
+        <div class="box core"><b>Telemetry API</b><div class="ref">src/api/telemetry/TelemetryAPI.js:167</div></div>
+        <div class="arr"></div>
+        <div class="box plugin"><b>Plot, table, gauge</b><span>Work with no changes.</span><div class="ref">src/plugins/plot/plugin.js:80</div></div>
+      </div>
+    </div>
+    <h3>What the Percy plugin registers</h3>
+    <ol class="todo">
+      <li><b>A type.</b> "Percy measurement", so Open MCT knows what kind of thing speed is. Desk: <code>src/api/types/TypeRegistry.js:59</code>. Example: <code>example/generator/plugin.js:64</code>. Docs: <code>API.md:278</code>.</li>
+      <li><b>A root folder.</b> "Perseverance" appears in the tree. Desk: <code>src/api/objects/ObjectAPI.js:498</code>. Example: <code>src/plugins/staticRootPlugin/plugin.js:54</code>.</li>
+      <li><b>An object provider.</b> Answers "what is inside Perseverance?" with one object per measurement. Each one carries labels: a <code>utc</code> field marked as time and a value field marked as the number to plot. Desk: <code>src/api/objects/ObjectAPI.js:168</code>.</li>
+      <li><b>A telemetry provider.</b> <code>subscribe</code> for live readings, <code>request</code> for past ones. Desk: <code>src/api/telemetry/TelemetryAPI.js:167</code>. Example: <code>example/generator/GeneratorProvider.js:91</code> and <code>:101</code>. Docs: <code>API.md:532</code>.</li>
+      <li><b>Install it</b> on the page, the same way the generator is installed at <code>index.html:104</code>.</li>
+    </ol>
+    <pre><code>// Sketch only, not tested. "feed" is the relay connection, "lookup" returns the objects.
+function PercyPlugin() {
+  return function install(openmct) {
+    openmct.types.addType('percy.telemetry', { name: 'Percy Measurement' });
+    openmct.objects.addRoot({ namespace: 'percy', key: 'rover' });
+    openmct.objects.addProvider('percy', {
+      get: (identifier) => Promise.resolve(lookup(identifier))
+    });
+    openmct.telemetry.addProvider({
+      supportsSubscribe: (object) => object.type === 'percy.telemetry',
+      subscribe(object, callback) {
+        const listener = (reading) => callback(reading); // { utc, value }
+        feed.on(object.identifier.key, listener);
+        return () => feed.off(object.identifier.key, listener);
+      }
+    });
+  };
+}</code></pre>
+    <h3>Three rules that are easy to miss</h3>
+    <ol class="todo">
+      <li>The time field must be named after the active time system. With the UTC plugin that name is <code>utc</code>, which is why the plot picks it as x (<code>src/plugins/plot/configuration/PlotSeries.js:124</code>).</li>
+      <li><code>subscribe</code> must return a function that stops the feed. Open MCT calls it when the last view closes.</li>
+      <li>Past readings come back oldest first, and only inside the requested start and end.</li>
+    </ol>
+    <div class="note">Limits of this map: live readings alone are enough to see a moving chart, but scrolling back in time needs <code>request</code>, which means something has to keep Percy's past readings. Our simulation does not model a battery, so that measurement would have to be invented. NASA's step-by-step tutorial is in a separate repository, <a href="https://github.com/nasa/openmct-tutorial">nasa/openmct-tutorial</a>, and was not read for this page.</div>
+  </section>
+
+  <footer class="muted" style="font-size:0.85rem">
+    Every file and line on this page was printed from a clone at commit e09bfaf and compared with what the page says. Nothing was installed and the repository was not changed.
+  </footer>
+</div>
