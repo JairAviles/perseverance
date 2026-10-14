@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createCameraPoints } from './cameras.js';
 import { DUST_COLOR } from './constants.js';
 import { createDashboard } from './dashboard.js';
 import { createDust } from './dust.js';
 import { createLights } from './lights.js';
 import { createLightTimeTelemetry } from './lightTime.js';
 import { createMoons } from './moons.js';
+import { createPhotoViewer } from './photoViewer.js';
 import { createRocks } from './rocks.js';
 import { createRover } from './rover.js';
 import { createSky } from './sky.js';
@@ -60,6 +62,9 @@ controls.maxPolarAngle = Math.PI * 0.49;
 controls.minDistance = 3;
 controls.maxDistance = 60;
 
+const photoViewer = createPhotoViewer();
+const cameraPoints = createCameraPoints(rover, camera, renderer.domElement, photoViewer.show);
+
 const followOffset = new THREE.Vector3();
 let lastHeading = rover.heading;
 
@@ -94,6 +99,7 @@ renderer.setAnimationLoop((time) => {
 
   lights.update(rover.group.position);
   dust.update(delta, seconds, rover.group.position);
+  cameraPoints.update(seconds);
   renderer.render(scene, camera);
   window.__ready = rover.ready;
 });

@@ -7,6 +7,8 @@ const SCREENSHOT_PATH = process.env.CHECK_SCREENSHOT || 'screenshots/check.png';
 const HOLD_KEYS = (process.env.CHECK_HOLD || '').split(',').filter(Boolean);
 const HOLD_MS = Number(process.env.CHECK_HOLD_MS || 4000);
 const DATA_POINTS = 4;
+const PHOTO_SCREENSHOT_PATH = 'screenshots/photo.png';
+const CAMERAS = ['mastcam', 'navcam', 'hazcam', 'watson'];
 
 const browser = await chromium.launch({
   channel: 'chrome',
@@ -52,7 +54,32 @@ await page.screenshot({ path: SCREENSHOT_PATH });
 await page.keyboard.press('t');
 await page.waitForTimeout(600);
 const hidden = await page.$eval('.dashboard', (element) => getComputedStyle(element).visibility === 'hidden').catch(() => false);
+
+// Each camera point opens a real photo
+const photos = [];
+for (const key of CAMERAS) {
+  try {
+    const point = await page.evaluate((cameraKey) => window.__cameraScreenPosition?.(cameraKey), key);
+    if (!point?.visible) throw new Error('point not on screen');
+    await page.mouse.move(point.x, point.y);
+    await page.mouse.click(point.x, point.y);
+    await page.waitForFunction(
+      () => document.querySelector('.photo-viewer')?.dataset.ready === 'true' && document.querySelector('.photo-image').naturalWidth > 0,
+      null,
+      { timeout: 20000 }
+    );
+    const details = await page.$eval('.photo-details', (element) => element.textContent);
+    if (!photos.length) await page.screenshot({ path: PHOTO_SCREENSHOT_PATH });
+    photos.push({ key, details });
+  } catch (error) {
+    photos.push({ key, error: error.message });
+  }
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+}
 await browser.close();
+
+photos.filter((photo) => photo.error).forEach((photo) => errors.push(`check: ${photo.key} photo did not open (${photo.error})`));
 
 const loaded = readings.filter((reading) => reading.loaded).length;
 if (loaded !== DATA_POINTS) errors.push(`check: ${loaded} of ${DATA_POINTS} data points loaded`);
@@ -62,6 +89,8 @@ console.log(`Screenshot: ${SCREENSHOT_PATH}`);
 console.log(`Data points (${loaded}/${DATA_POINTS} loaded):`);
 readings.forEach((reading) => console.log(`  - ${reading.name}: ${reading.loaded ? reading.value : 'not loaded'}`));
 console.log(`T hides dashboard: ${hidden ? 'yes' : 'no'}`);
+console.log(`Photos (screenshot: ${PHOTO_SCREENSHOT_PATH}):`);
+photos.forEach((photo) => console.log(`  - ${photo.key}: ${photo.details || 'failed'}`));
 if (logs.length) {
   console.log(`Console logs (${logs.length}):`);
   logs.forEach((log) => console.log(`  - ${log}`));

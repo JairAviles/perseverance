@@ -1,0 +1,133 @@
+.camera-label {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 4px 8px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #dff7ff;
+  background: rgba(28, 13, 8, 0.75);
+  border: 1px solid rgba(159, 232, 255, 0.5);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.photo-flash {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.photo-flash.is-flashing {
+  animation: photo-flash 0.6s ease-out;
+}
+
+@keyframes photo-flash {
+  from { opacity: 0.9; }
+  to { opacity: 0; }
+}
+
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.photo-viewer[hidden] {
+  display: none;
+}
+
+.photo-viewer.is-full {
+  background: rgba(10, 4, 2, 0.92);
+  pointer-events: auto;
+}
+
+.photo-card {
+  margin: 0;
+  width: min(72vw, 112vh);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px 12px;
+  background: rgba(28, 13, 8, 0.72);
+  border: 1px solid rgba(255, 184, 120, 0.35);
+  border-left: 2px solid #ffb878;
+  backdrop-filter: blur(6px);
+  cursor: zoom-in;
+  pointer-events: auto;
+  animation: photo-card-in 0.4s ease-out;
+}
+
+.is-full .photo-card {
+  width: min(96vw, 160vh);
+  background: none;
+  border-color: transparent;
+  backdrop-filter: none;
+  cursor: default;
+}
+
+@keyframes photo-card-in {
+  from { opacity: 0; transform: scale(0.96); }
+}
+
+.photo-frame {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: #120804;
+  overflow: hidden;
+}
+
+.photo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  clip-path: inset(0 0 100% 0);
+  filter: blur(14px) brightness(1.5);
+}
+
+.photo-image.is-revealed {
+  clip-path: inset(0 0 0 0);
+  filter: none;
+  transition: clip-path 2.2s linear, filter 2.5s ease-out;
+}
+
+.photo-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #ffb878;
+}
+
+.photo-status[hidden] {
+  display: none;
+}
+
+.photo-caption {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: #fff4e8;
+}
+
+.photo-hint {
+  font-size: 11px;
+  color: #f3d9c0;
+  opacity: 0.7;
+}
